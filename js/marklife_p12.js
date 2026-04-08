@@ -42,17 +42,16 @@ class MarklifeP12Printer extends PrinterBase {
         payload,
       ];
 
-      // Segmented labels: extra feed must run *before* the gap/cut trailer. ESC J sent after
-      // 0xff 0xf1 0x45 / init packets is ignored on at least some Marklife firmware (UI feed had no effect).
+      // Segmented labels: use the gap sensor to advance to the next label boundary.
+      // L11 protocol sequence: optional ESC J feed, then 1D 0C (position-to-gap), then stop.
+      // ESC J after the stop command is ignored on at least some Marklife firmware.
       if (segmentedPaper) {
         if (feedDots > 0) {
           appendEscJFeed(packets, feedDots);
         }
         packets.push(
-          Uint8Array.from([0x1d, 0x0c, 0x10]),
-          Uint8Array.from([0xff, 0xf1, 0x45]),
-          Uint8Array.from([0x10, 0xff, 0x40]),
-          Uint8Array.from([0x10, 0xff, 0x40]),
+          Uint8Array.from([0x1d, 0x0c]),                // GS FF — advance to next label gap
+          Uint8Array.from([0x10, 0xff, 0xf1, 0x45]),    // stop print job
         );
       } else {
         // Continuous: match legacy purge+end order; apply configurable feed *after* end so it isn’t skipped.
