@@ -43,12 +43,9 @@ class MarklifeP12Printer extends PrinterBase {
       ];
 
       // Segmented labels: use the gap sensor to advance to the next label boundary.
-      // L11 protocol sequence: optional ESC J feed, then 1D 0C (position-to-gap), then stop.
-      // ESC J after the stop command is ignored on at least some Marklife firmware.
+      // L11 protocol: 1D 0C (position-to-gap) then stop. Non-zero ESC J feed before
+      // 1D 0C breaks the auto-advance on at least some Marklife firmware.
       if (segmentedPaper) {
-        if (feedDots > 0) {
-          appendEscJFeed(packets, feedDots);
-        }
         packets.push(
           Uint8Array.from([0x1d, 0x0c]),                // GS FF — advance to next label gap
           Uint8Array.from([0x10, 0xff, 0xf1, 0x45]),    // stop print job

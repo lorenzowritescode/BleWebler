@@ -425,7 +425,7 @@ function addTextToCanvas() {
 
   const newText = new fabric.IText(textContent, {
     left: bounds.left,
-    fontFamily: fontFamilyInput.value || 'Arial', // Use fontFamilySelect
+    fontFamily: fontFamilyInput.value || 'DePixel Breit',
     fontSize: parseFloat(fontSizeInput.value) || 48,
     fill: '#000000',
     fontWeight: 'normal', // Default to normal, will be set by toggleStyle if active
@@ -970,7 +970,7 @@ function updateTextControls() {
 function clearTextControls() {
   // Reset to default or clear when no text object is selected
   fontSizeInput.value = '48';
-  fontFamilyInput.value = 'Arial';
+  fontFamilyInput.value = 'DePixel Breit';
   if (typeof window.syncBitmapFontQuickPick === "function") {
     window.syncBitmapFontQuickPick();
   }

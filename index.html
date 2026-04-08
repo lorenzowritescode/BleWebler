@@ -201,23 +201,19 @@
           <div id="font-style-group" class="control-group font-style-group-row">
             <input type="number" id="fontSize" value="48" min="1" title="Font Size" style="width: 80px;" />
             <div class="font-pick-row">
-              <label for="bitmapFontQuickPick" class="font-quick-label">Pixel</label>
-              <select id="bitmapFontQuickPick" class="bitmap-font-quick-pick" title="Jump to a bundled pixel font"
-                aria-label="Quick pick pixel font">
-                <option value="">Quick pick…</option>
-              </select>
-              <input type="text" id="fontFamilyInput" list="fontList" value="Arial" placeholder="Font family (any)"
+              <input type="text" id="fontFamilyInput" list="fontList" value="DePixel Breit" placeholder="Font family (any)"
                 class="font-family-text-input"
-                title="Bundled pixel fonts: use the menu, or type any font name (e.g. Arial, DePixel Klein)" />
+                title="Type any font name (e.g. Arial, DePixel Klein)" />
+              <datalist id="fontList"></datalist>
+              <button id="loadSystemFontsBtn" class="btn btn-icon btn-secondary" title="Load System Fonts">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path
+                    d="M9.93 13.5h4.14L12 7.98zM20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-4.05 16.5l-1.14-3H9.17l-1.12 3H5.96l5.11-13h1.86l5.11 13h-2.09z" />
+                </svg>
+              </button>
             </div>
-            <datalist id="fontList"></datalist>
-            <button id="loadSystemFontsBtn" class="btn btn-icon btn-secondary" title="Load System Fonts">
-              <svg class="icon" viewBox="0 0 24 24">
-                <path
-                  d="M9.93 13.5h4.14L12 7.98zM20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-4.05 16.5l-1.14-3H9.17l-1.12 3H5.96l5.11-13h1.86l5.11 13h-2.09z" />
-              </svg>
-            </button>
           </div>
+          <div id="bitmapFontGallery" class="bitmap-font-gallery"></div>
 
           <div id="text-format-group" class="button-group mb-4">
             <button class="toggle-btn btn" data-property="bold" title="Bold">
@@ -406,10 +402,9 @@
           tuning (hardware):</label>
         <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0 0 var(--spacing-sm) 0; line-height: 1.4;">
           Nudge shifts the raster sent to the printer (not the on-screen editor). Negative X moves content left on the
-          sticker if the print starts too far right. Feed is extra advance after each job (segmented tape); increase if
-          the next label doesn’t line up.
+          sticker if the print starts too far right.
         </p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-sm);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
           <div>
             <label for="printNudgeXMm" style="font-size: 0.85rem; color: var(--text-muted);">Nudge X (mm):</label>
             <input type="number" id="printNudgeXMm" value="0" step="0.5" style="width: 100%;">
@@ -417,10 +412,6 @@
           <div>
             <label for="printNudgeYMm" style="font-size: 0.85rem; color: var(--text-muted);">Nudge Y (mm):</label>
             <input type="number" id="printNudgeYMm" value="0" step="0.5" style="width: 100%;">
-          </div>
-          <div>
-            <label for="feedAfterPrintMm" style="font-size: 0.85rem; color: var(--text-muted);">Feed after (mm):</label>
-            <input type="number" id="feedAfterPrintMm" value="14" min="0" step="1" style="width: 100%;">
           </div>
         </div>
       </div>
@@ -432,7 +423,7 @@
       <button type="button" id="calibrationPrintButton" class="btn btn-secondary btn-block mt-2">
         Print calibration ruler
       </button>
-      <p class="calibration-hint">Same pixel size as the label. Ticks = 1&nbsp;mm / 12&nbsp;mm. Use nudge X/Y above so the ruler lines up with the physical label; adjust feed if peeling position is wrong.</p>
+      <p class="calibration-hint">Same pixel size as the label. Ticks = 1&nbsp;mm / 12&nbsp;mm. Use nudge X/Y above so the ruler lines up with the physical label.</p>
 
       <button class="advanced-toggle" onclick="toggleAdvanced()">Show Advanced</button>
 

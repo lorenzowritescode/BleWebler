@@ -31,7 +31,7 @@ function updateFontSize(fontSize) {
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".label-type-btn");
   const fontFamilyInput = document.getElementById("fontFamilyInput");
-  const bitmapFontQuickPick = document.getElementById("bitmapFontQuickPick");
+  const bitmapFontGallery = document.getElementById("bitmapFontGallery");
   const fontList = document.getElementById("fontList");
   const loadSystemFontsBtn = document.getElementById("loadSystemFontsBtn");
   const fontSizeInput = document.getElementById("fontSize");
@@ -78,53 +78,59 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.fabricEditor && window.fabricEditor.getActiveObject()) {
       fontFamilyInput.value = window.fabricEditor.getActiveObject().fontFamily;
     } else {
-      fontFamilyInput.value = "Arial"; // Default
+      fontFamilyInput.value = "DePixel Breit"; // Default
     }
   }
 
-  function populateBitmapQuickPickOptions() {
-    if (!bitmapFontQuickPick) return;
-    while (bitmapFontQuickPick.options.length > 1) {
-      bitmapFontQuickPick.remove(1);
-    }
+  function buildFontGallery() {
+    if (!bitmapFontGallery) return;
+    bitmapFontGallery.innerHTML = "";
     bitmapFonts.forEach((name) => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      bitmapFontQuickPick.appendChild(opt);
+      const chip = document.createElement("div");
+      chip.className = "font-gallery-chip";
+      chip.dataset.font = name;
+
+      const preview = document.createElement("span");
+      preview.className = "font-gallery-preview";
+      preview.style.fontFamily = '"' + name + '", monospace';
+      preview.textContent = "Abc";
+
+      const label = document.createElement("span");
+      label.className = "font-gallery-name";
+      label.textContent = name;
+
+      chip.appendChild(preview);
+      chip.appendChild(label);
+      chip.addEventListener("click", () => {
+        fontFamilyInput.value = name;
+        updateFontFamily(name);
+        syncFontGallerySelection();
+      });
+      bitmapFontGallery.appendChild(chip);
     });
+    syncFontGallerySelection();
   }
 
-  function syncBitmapFontQuickPick() {
-    if (!bitmapFontQuickPick || !fontFamilyInput) return;
+  function syncFontGallerySelection() {
+    if (!bitmapFontGallery) return;
     const v = (fontFamilyInput.value || "").trim();
-    const has = Array.from(bitmapFontQuickPick.options).some((o) => o.value === v);
-    bitmapFontQuickPick.value = has ? v : "";
-  }
-
-  window.syncBitmapFontQuickPick = syncBitmapFontQuickPick;
-
-  // Populate fonts on load; preload bundled TTFs so canvas/print render reliably
-  populateFontDropdown(defaultFontList());
-  populateBitmapQuickPickOptions();
-  syncBitmapFontQuickPick();
-  if (typeof window.preloadBitmapFonts === "function") {
-    window.preloadBitmapFonts().catch(() => {});
-  }
-
-  if (bitmapFontQuickPick) {
-    bitmapFontQuickPick.addEventListener("change", () => {
-      const v = bitmapFontQuickPick.value;
-      if (v === "") return;
-      fontFamilyInput.value = v;
-      updateFontFamily(v);
+    bitmapFontGallery.querySelectorAll(".font-gallery-chip").forEach((chip) => {
+      chip.classList.toggle("active", chip.dataset.font === v);
     });
   }
 
-  // Event listener for font family change
+  window.syncBitmapFontQuickPick = syncFontGallerySelection;
+
+  populateFontDropdown(defaultFontList());
+  if (typeof window.preloadBitmapFonts === "function") {
+    window.preloadBitmapFonts().then(() => buildFontGallery()).catch(() => buildFontGallery());
+  } else {
+    buildFontGallery();
+  }
+
   fontFamilyInput.addEventListener("input", (event) => {
     updateFontFamily(event.target.value);
-    syncBitmapFontQuickPick();
+    syncFontGallerySelection();
   });
 
   // Event listener for font size change
@@ -610,7 +616,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const paddingRightInput = document.getElementById('paddingRight');
     const printNudgeXInput = document.getElementById('printNudgeXMm');
     const printNudgeYInput = document.getElementById('printNudgeYMm');
-    const feedAfterPrintInput = document.getElementById('feedAfterPrintMm');
 
     // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -624,7 +629,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const urlPaddingRight = urlParams.get('paddingRight');
     const urlPrintNudgeX = urlParams.get('printNudgeX');
     const urlPrintNudgeY = urlParams.get('printNudgeY');
-    const urlFeedAfterPrint = urlParams.get('feedAfterPrint');
 
     // Infinite Paper Checkbox Logic
     if (infinitePaperCheckbox && paperWidthInput && paperWidthContainer) {
@@ -678,10 +682,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const nudgeX = urlPrintNudgeX !== null ? parseFloat(urlPrintNudgeX) : 0;
         const nudgeY = urlPrintNudgeY !== null ? parseFloat(urlPrintNudgeY) : 0;
-        const feedMm = urlFeedAfterPrint !== null ? parseFloat(urlFeedAfterPrint) : 14;
         if (printNudgeXInput) printNudgeXInput.value = Number.isFinite(nudgeX) ? nudgeX : 0;
         if (printNudgeYInput) printNudgeYInput.value = Number.isFinite(nudgeY) ? nudgeY : 0;
-        if (feedAfterPrintInput) feedAfterPrintInput.value = Number.isFinite(feedMm) ? feedMm : 14;
 
         applyPrinterSettings(pIndex, w, h, urlInfinite, pTop, pBottom, pLeft, pRight);
       } else {
@@ -747,10 +749,8 @@ document.addEventListener("DOMContentLoaded", () => {
       newUrl.searchParams.set('paddingRight', paddingRightMm);
       const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
       const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
-      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
       newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
       newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
-      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
       window.history.replaceState({}, '', newUrl);
     };
 
@@ -775,11 +775,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const updatePrintTuningFromInputs = () => {
       const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
       const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
-      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
       newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
-      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
       window.history.replaceState({}, '', newUrl);
     };
 
@@ -790,10 +788,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (printNudgeYInput) {
       printNudgeYInput.addEventListener('change', updatePrintTuningFromInputs);
       printNudgeYInput.addEventListener('blur', updatePrintTuningFromInputs);
-    }
-    if (feedAfterPrintInput) {
-      feedAfterPrintInput.addEventListener('change', updatePrintTuningFromInputs);
-      feedAfterPrintInput.addEventListener('blur', updatePrintTuningFromInputs);
     }
 
     // 3. Handle Start Button Click
@@ -822,10 +816,8 @@ document.addEventListener("DOMContentLoaded", () => {
       newUrl.searchParams.set('paddingRight', paddingRightMm);
       const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
       const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
-      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
       newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
       newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
-      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
       window.history.replaceState({}, '', newUrl);
     });
   }

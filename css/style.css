@@ -957,7 +957,7 @@ textarea.input-modern {
   font-display: swap;
 }
 
-/* Font row: size | pixel quick-pick + family field | load fonts btn */
+/* Font row: size | family field | load fonts btn */
 #font-style-group.font-style-group-row {
   flex-wrap: wrap;
   align-items: stretch;
@@ -971,49 +971,88 @@ textarea.input-modern {
   min-width: 0;
 }
 
-.font-quick-label {
-  flex: 0 0 auto;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-#bitmapFontQuickPick.bitmap-font-quick-pick {
-  flex: 0 1 13rem;
-  min-width: 10rem;
-  max-width: 16rem;
-  height: var(--control-height);
-  padding: 0 var(--spacing-sm);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background-color: var(--bg-input);
-  color: var(--text-main);
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-
-#bitmapFontQuickPick.bitmap-font-quick-pick:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
-
 .font-family-text-input {
   flex: 1 1 6rem;
   min-width: 0;
 }
 
+/* Bitmap font gallery */
+.bitmap-font-gallery {
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-sm);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bitmap-font-gallery::-webkit-scrollbar {
+  height: 4px;
+}
+
+.bitmap-font-gallery::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bitmap-font-gallery::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.font-gallery-chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 0;
+  user-select: none;
+}
+
+.font-gallery-chip:hover {
+  border-color: var(--primary);
+  background: var(--bg-input);
+}
+
+.font-gallery-chip.active {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.font-gallery-preview {
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--text-main);
+  white-space: nowrap;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+.font-gallery-name {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 8rem;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 @media (max-width: 480px) {
   .font-pick-row {
     flex-wrap: wrap;
-  }
-
-  #bitmapFontQuickPick.bitmap-font-quick-pick {
-    flex: 1 1 100%;
-    max-width: none;
   }
 }
 

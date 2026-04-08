@@ -236,7 +236,7 @@ function readPrintTuningFromDom() {
   return {
     nudgeXMm: num("printNudgeXMm", 0),
     nudgeYMm: num("printNudgeYMm", 0),
-    feedAfterPrintMm: num("feedAfterPrintMm", 14)
+    feedAfterPrintMm: 0
   };
 }
 
