@@ -131,19 +131,54 @@ function rasterizeCanvas(canvasHeight, isInfinitePaper, ignoreSelection = false)
     fabricCanvas.renderAll(); // Ensure render happens synchronously
   }
 
+  // Padding margin guides are UI-only; hide so print matches artwork (not the red overlay).
+  const hiddenForPrint = [];
+  fabricCanvas.getObjects().forEach((obj) => {
+    if (obj.paddingGuide) {
+      hiddenForPrint.push(obj);
+      obj.visible = false;
+    }
+  });
+  if (hiddenForPrint.length) {
+    fabricCanvas.requestRenderAll();
+    fabricCanvas.renderAll();
+  }
+
   const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d");
+  const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
 
   const canvasWidth = fabricCanvas.width; // Use Fabric canvas width
   tempCanvas.width = canvasWidth;
   tempCanvas.height = canvasHeight;
 
+  tempCtx.imageSmoothingEnabled = false;
+
   // Render the fabric canvas content onto the temporary canvas
   fabricCanvas.backgroundColor = '#ffffff'; // Ensure white background
 
+  const lowerEl = fabricCanvas.getElement && fabricCanvas.getElement();
+  if (lowerEl && lowerEl.getContext) {
+    const fctx = lowerEl.getContext("2d");
+    if (fctx) {
+      fctx.imageSmoothingEnabled = false;
+      if (typeof fctx.imageSmoothingQuality !== "undefined") {
+        fctx.imageSmoothingQuality = "low";
+      }
+    }
+  }
+
   // Force a render of the lower canvas to ensure it's up to date
   fabricCanvas.renderAll();
+  tempCtx.fillStyle = "#ffffff";
+  tempCtx.fillRect(0, 0, canvasWidth, canvasHeight);
   tempCtx.drawImage(fabricCanvas.getElement(), 0, 0, canvasWidth, canvasHeight);
+
+  hiddenForPrint.forEach((obj) => {
+    obj.visible = true;
+  });
+  if (hiddenForPrint.length) {
+    fabricCanvas.requestRenderAll();
+  }
 
   // Restore selection if we modified it
   if (!ignoreSelection && activeObject) {
@@ -163,15 +198,120 @@ function constructBitmap(canvasHeight, copyCount, isInfinitePaper, ignoreSelecti
   const canvasWidth = imgDataObj.width;
   const height = imgDataObj.height;
 
+  // BT.601 luma; ink where luma < inkLumaMax. **Lower** inkLumaMax = fewer pixels = thinner strokes.
+  // (Using `luma < 222` wrongly marks almost all non-white pixels as ink — that made text thicker.)
+  const inkLumaMax = 108;
   const bitmap = [];
   for (let y = 0; y < height; y++) {
     let row = "";
     for (let x = 0; x < canvasWidth; x++) {
       const i = (y * canvasWidth + x) * 4;
-      const avg = (imgData[i] + imgData[i + 1] + imgData[i + 2]) / 3;
-      row += avg < 128 ? "1" : "0";
+      const r = imgData[i];
+      const g = imgData[i + 1];
+      const b = imgData[i + 2];
+      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+      row += luma < inkLumaMax ? "1" : "0";
     }
     bitmap.push(row);
   }
   return bitmap;
 }
+
+/**
+ * Ruler grid matching the current canvas pixel size (WYSIWYG check vs physical label).
+ * Ticks every 1 mm (dpm dots); longer ticks every 12 mm. Full border + center cross.
+ * Bitmap height is padded to a multiple of 8 for the Marklife packet encoder.
+ */
+function buildCalibrationBitmap(width, height, dpm) {
+  const d = Math.max(1, dpm | 0);
+  const major = 12 * d;
+  const w = Math.max(1, width | 0);
+  const h = Math.max(1, height | 0);
+  const g = Array.from({ length: h }, () => Array(w).fill("0"));
+  const set = (x, y) => {
+    if (x >= 0 && x < w && y >= 0 && y < h) g[y][x] = "1";
+  };
+  const hline = (y, x0, x1) => {
+    for (let x = Math.max(0, x0); x <= Math.min(w - 1, x1); x++) set(x, y);
+  };
+  const vline = (x, y0, y1) => {
+    for (let y = Math.max(0, y0); y <= Math.min(h - 1, y1); y++) set(x, y);
+  };
+  hline(0, 0, w - 1);
+  hline(h - 1, 0, w - 1);
+  vline(0, 0, h - 1);
+  vline(w - 1, 0, h - 1);
+  for (let x = 0; x < w; x += d) {
+    const isMajor = x % major === 0;
+    const tl = isMajor ? Math.min(14, h - 2) : Math.min(6, h - 2);
+    for (let dy = 1; dy <= tl; dy++) set(x, dy);
+  }
+  for (let y = 0; y < h; y += d) {
+    const isMajor = y % major === 0;
+    const tl = isMajor ? Math.min(14, w - 2) : Math.min(6, w - 2);
+    for (let dx = 1; dx <= tl; dx++) set(dx, y);
+  }
+  const cx = Math.floor(w / 2);
+  const cy = Math.floor(h / 2);
+  const clen = Math.min(9, Math.floor(Math.min(w, h) / 4));
+  for (let k = -clen; k <= clen; k++) {
+    set(cx + k, cy);
+    set(cx, cy + k);
+  }
+  return g.map((row) => row.join(""));
+}
+
+function padBitmapHeightToMultipleOf8(bitmap) {
+  if (!bitmap || !bitmap.length) return bitmap;
+  const h = bitmap.length;
+  const pad = (8 - (h % 8)) % 8;
+  if (pad === 0) return bitmap;
+  const line = "0".repeat(bitmap[0].length);
+  const out = bitmap.slice();
+  for (let i = 0; i < pad; i++) out.push(line);
+  return out;
+}
+
+async function printCalibrationLabel() {
+  try {
+    await connectPrinter();
+    if (!printerInstance || !device) return;
+
+    const printer = supportedPrinters.find((p) => p.pattern.test(device.name));
+    if (!printer) {
+      log("Calibration: unknown printer.");
+      return;
+    }
+
+    const fabricCanvas = getFabricCanvas();
+    if (!fabricCanvas) {
+      log("Calibration: canvas not ready.");
+      return;
+    }
+
+    const w = fabricCanvas.width | 0;
+    const h = fabricCanvas.height | 0;
+    if (w < 1 || h < 1) {
+      log("Calibration: invalid canvas size.");
+      return;
+    }
+
+    const dpm = printer.dpm || 8;
+    const infinitePaperCheckbox = document.getElementById("infinitePaperCheckbox");
+    const isSegmented = infinitePaperCheckbox ? !infinitePaperCheckbox.checked : true;
+
+    let bitmap = buildCalibrationBitmap(w, h, dpm);
+    bitmap = padBitmapHeightToMultipleOf8(bitmap);
+    log(
+      `Calibration print: ${w}×${bitmap.length} dots (${dpm} dots/mm → small tick = 1 mm, long tick = 12 mm). Compare to on-screen label size.`
+    );
+
+    await printerInstance.print(device, bitmap, isSegmented);
+    log("Calibration print finished.");
+  } catch (err) {
+    console.error("Calibration print failed:", err);
+    log("Calibration print failed: " + err);
+  }
+}
+
+window.printCalibrationLabel = printCalibrationLabel;

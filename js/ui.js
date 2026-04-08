@@ -31,6 +31,7 @@ function updateFontSize(fontSize) {
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".label-type-btn");
   const fontFamilyInput = document.getElementById("fontFamilyInput");
+  const bitmapFontQuickPick = document.getElementById("bitmapFontQuickPick");
   const fontList = document.getElementById("fontList");
   const loadSystemFontsBtn = document.getElementById("loadSystemFontsBtn");
   const fontSizeInput = document.getElementById("fontSize");
@@ -50,8 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Basic web-safe fonts
+  // Bundled pixel/bitmap fonts (see js/bitmap_fonts.js + css @font-face) first, then web-safe fonts
+  const bitmapFonts = Array.isArray(window.BITMAP_FONT_FAMILIES) ? window.BITMAP_FONT_FAMILIES : [];
   const basicFonts = ["Arial", "Verdana", "Times New Roman", "Courier New", "Georgia", "Impact", "Tahoma", "Trebuchet MS"];
+  const defaultFontList = () => [...bitmapFonts, ...basicFonts];
 
   // Event listeners for toggle buttons
   document.querySelectorAll('.toggle-btn').forEach(button => {
@@ -79,12 +82,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Populate with basic fonts on load
-  populateFontDropdown(basicFonts);
+  function populateBitmapQuickPickOptions() {
+    if (!bitmapFontQuickPick) return;
+    while (bitmapFontQuickPick.options.length > 1) {
+      bitmapFontQuickPick.remove(1);
+    }
+    bitmapFonts.forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      bitmapFontQuickPick.appendChild(opt);
+    });
+  }
+
+  function syncBitmapFontQuickPick() {
+    if (!bitmapFontQuickPick || !fontFamilyInput) return;
+    const v = (fontFamilyInput.value || "").trim();
+    const has = Array.from(bitmapFontQuickPick.options).some((o) => o.value === v);
+    bitmapFontQuickPick.value = has ? v : "";
+  }
+
+  window.syncBitmapFontQuickPick = syncBitmapFontQuickPick;
+
+  // Populate fonts on load; preload bundled TTFs so canvas/print render reliably
+  populateFontDropdown(defaultFontList());
+  populateBitmapQuickPickOptions();
+  syncBitmapFontQuickPick();
+  if (typeof window.preloadBitmapFonts === "function") {
+    window.preloadBitmapFonts().catch(() => {});
+  }
+
+  if (bitmapFontQuickPick) {
+    bitmapFontQuickPick.addEventListener("change", () => {
+      const v = bitmapFontQuickPick.value;
+      if (v === "") return;
+      fontFamilyInput.value = v;
+      updateFontFamily(v);
+    });
+  }
 
   // Event listener for font family change
   fontFamilyInput.addEventListener("input", (event) => {
     updateFontFamily(event.target.value);
+    syncBitmapFontQuickPick();
   });
 
   // Event listener for font size change
@@ -106,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const systemFonts = await window.queryLocalFonts();
           const fontNames = systemFonts.map(font => font.family).filter((value, index, self) => self.indexOf(value) === index); // Get unique font names
-          populateFontDropdown([...basicFonts, ...fontNames].filter((value, index, self) => self.indexOf(value) === index).sort()); // Merge, make unique, sort, and repopulate
+          populateFontDropdown([...defaultFontList(), ...fontNames].filter((value, index, self) => self.indexOf(value) === index).sort()); // Merge, make unique, sort, and repopulate
           loadSystemFontsBtn.style.display = 'none'; // Hide button after successful load
         } catch (err) {
           console.error("Error querying local fonts:", err);
@@ -184,6 +224,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const printButton = document.getElementById("printButton");
   if (printButton) {
     printButton.addEventListener("click", printLabel);
+  }
+
+  const calibrationPrintButton = document.getElementById("calibrationPrintButton");
+  if (calibrationPrintButton) {
+    calibrationPrintButton.addEventListener("click", () => {
+      if (typeof printCalibrationLabel === "function") {
+        printCalibrationLabel();
+      }
+    });
   }
 
   // Live Preview Logic (Standard Behavior)

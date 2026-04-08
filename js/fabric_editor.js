@@ -828,6 +828,9 @@ function updateTextControls() {
       const effectiveFontSize = Math.round(activeObject.fontSize * activeObject.scaleY);
       fontSizeInput.value = effectiveFontSize;
       fontFamilyInput.value = activeObject.fontFamily;
+      if (typeof window.syncBitmapFontQuickPick === "function") {
+        window.syncBitmapFontQuickPick();
+      }
 
       document.querySelectorAll('.toggle-btn').forEach(button => {
         const property = button.dataset.property;
@@ -968,6 +971,9 @@ function clearTextControls() {
   // Reset to default or clear when no text object is selected
   fontSizeInput.value = '48';
   fontFamilyInput.value = 'Arial';
+  if (typeof window.syncBitmapFontQuickPick === "function") {
+    window.syncBitmapFontQuickPick();
+  }
   document.querySelectorAll('.toggle-btn').forEach(button => {
     button.classList.remove('active');
   });

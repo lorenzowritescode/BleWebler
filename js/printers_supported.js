@@ -28,8 +28,9 @@ User Manual      : <a href="https://fcc.report/FCC-ID/2A2AI-P12/5793950.pdf" tar
         pattern: /^P15_.+?_BLE$/, //Pattern used to distinguish this printer from others after connecting via BLE
         printerClass: MarklifeP12Printer, // Class to instantiate
         optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"], // UUIDs needed
-        px: 96, //printed width in px
-        dpm: 8, //printer dots per mm (203 dpi)
+        // Same raster geometry as P12 — BLE payload is tuned for 8 dots/mm × 96-line buffers; other values mis-print (split/overlap).
+        px: 96,
+        dpm: 8,
         printerInfo:
             `Name             : Marklife P15
 Pixel Density    : 203 dpi

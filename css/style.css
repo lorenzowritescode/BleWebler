@@ -883,3 +883,143 @@ textarea.input-modern {
   resize: vertical;
   min-height: 2.5rem;
 }
+
+/* --- Bitmap / pixel fonts (see /bitmap_fonts) --- */
+@font-face {
+  font-family: "Qager";
+  src: url("../bitmap_fonts/Qager.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Digital Clock";
+  src: url("../bitmap_fonts/digital-clock.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VCR OSD Mono";
+  src: url("../bitmap_fonts/VCR_OSD_MONO_1.001.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Klein";
+  src: url("../bitmap_fonts/depixel/DePixelKlein.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Schmal";
+  src: url("../bitmap_fonts/depixel/DePixelSchmal.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Breit";
+  src: url("../bitmap_fonts/depixel/DePixelBreit.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Halbfett";
+  src: url("../bitmap_fonts/depixel/DePixelHalbfett.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Illegible";
+  src: url("../bitmap_fonts/depixel/DePixelIllegible.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DePixel Breit Fett";
+  src: url("../bitmap_fonts/depixel/DePixelBreitFett.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font row: size | pixel quick-pick + family field | load fonts btn */
+#font-style-group.font-style-group-row {
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.font-pick-row {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.font-quick-label {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+#bitmapFontQuickPick.bitmap-font-quick-pick {
+  flex: 0 1 13rem;
+  min-width: 10rem;
+  max-width: 16rem;
+  height: var(--control-height);
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+#bitmapFontQuickPick.bitmap-font-quick-pick:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.font-family-text-input {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .font-pick-row {
+    flex-wrap: wrap;
+  }
+
+  #bitmapFontQuickPick.bitmap-font-quick-pick {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+
+.calibration-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: var(--spacing-sm) 0 var(--spacing-md);
+}
