@@ -1,3 +1,13 @@
+/** ESC J n — feed n dot rows; split so n ≤ 255 per packet. */
+function appendEscJFeed(packets, feedDots) {
+  let remaining = Math.max(0, Math.min(65535, feedDots | 0));
+  while (remaining > 0) {
+    const chunk = Math.min(255, remaining);
+    packets.push(Uint8Array.from([0x1b, 0x4a, chunk]));
+    remaining -= chunk;
+  }
+}
+
 class MarklifeP12Printer extends PrinterBase {
   constructor() {
     super();
@@ -5,9 +15,16 @@ class MarklifeP12Printer extends PrinterBase {
     this.charUUID = "0000ff02-0000-1000-8000-00805f9b34fb";
   }
 
-  async print(device, bitmap, segmentedPaper = false) {
+  async print(device, bitmap, segmentedPaper = false, options = {}) {
     const canvasWidth = bitmap[0].length;
     const payload = this.bitmapToPacket(bitmap, canvasWidth);
+
+    const feedAfterPrintMm = options.feedAfterPrintMm != null ? Number(options.feedAfterPrintMm) : 0;
+    const dpm = options.dpm != null ? Number(options.dpm) : 8;
+    const feedDots = Math.min(
+      255 * 20,
+      Math.max(0, Math.round((Number.isFinite(feedAfterPrintMm) ? feedAfterPrintMm : 0) * (Number.isFinite(dpm) ? dpm : 8)))
+    );
 
     try {
       const characteristic = await this.connect(device);
@@ -25,23 +42,34 @@ class MarklifeP12Printer extends PrinterBase {
         payload,
       ];
 
+      // Segmented labels: extra feed must run *before* the gap/cut trailer. ESC J sent after
+      // 0xff 0xf1 0x45 / init packets is ignored on at least some Marklife firmware (UI feed had no effect).
       if (segmentedPaper) {
+        if (feedDots > 0) {
+          appendEscJFeed(packets, feedDots);
+        }
         packets.push(
           Uint8Array.from([0x1d, 0x0c, 0x10]),
           Uint8Array.from([0xff, 0xf1, 0x45]),
           Uint8Array.from([0x10, 0xff, 0x40]),
           Uint8Array.from([0x10, 0xff, 0x40]),
-        )
+        );
       } else {
-        packets.push(
-          Uint8Array.from([0x1b, 0x4a, 0x5B]), // purge
-          Uint8Array.from([0x10, 0xff, 0xf1, 0x45]) // end
-        )
+        // Continuous: match legacy purge+end order; apply configurable feed *after* end so it isn’t skipped.
+        if (feedDots === 0) {
+          packets.push(Uint8Array.from([0x1b, 0x4a, 0x5b]));
+        }
+        packets.push(Uint8Array.from([0x10, 0xff, 0xf1, 0x45])); // end
+        if (feedDots > 0) {
+          appendEscJFeed(packets, feedDots);
+        }
       }
 
       await this.sendPackets(characteristic, packets);
 
-      log("Print successful!");
+      log(
+        `Print successful! (${segmentedPaper ? "segmented" : "continuous"}: ${feedDots} dot-rows feed ≈ ${(feedDots / (dpm || 8)).toFixed(1)} mm)`
+      );
     } catch (err) {
       log("Print error: " + err);
       console.error("Print error:", err);

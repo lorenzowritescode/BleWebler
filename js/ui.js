@@ -608,6 +608,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const paddingBottomInput = document.getElementById('paddingBottom');
     const paddingLeftInput = document.getElementById('paddingLeft');
     const paddingRightInput = document.getElementById('paddingRight');
+    const printNudgeXInput = document.getElementById('printNudgeXMm');
+    const printNudgeYInput = document.getElementById('printNudgeYMm');
+    const feedAfterPrintInput = document.getElementById('feedAfterPrintMm');
 
     // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -619,6 +622,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const urlPaddingBottom = urlParams.get('paddingBottom');
     const urlPaddingLeft = urlParams.get('paddingLeft');
     const urlPaddingRight = urlParams.get('paddingRight');
+    const urlPrintNudgeX = urlParams.get('printNudgeX');
+    const urlPrintNudgeY = urlParams.get('printNudgeY');
+    const urlFeedAfterPrint = urlParams.get('feedAfterPrint');
 
     // Infinite Paper Checkbox Logic
     if (infinitePaperCheckbox && paperWidthInput && paperWidthContainer) {
@@ -669,6 +675,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (paddingBottomInput) paddingBottomInput.value = pBottom;
         if (paddingLeftInput) paddingLeftInput.value = pLeft;
         if (paddingRightInput) paddingRightInput.value = pRight;
+
+        const nudgeX = urlPrintNudgeX !== null ? parseFloat(urlPrintNudgeX) : 0;
+        const nudgeY = urlPrintNudgeY !== null ? parseFloat(urlPrintNudgeY) : 0;
+        const feedMm = urlFeedAfterPrint !== null ? parseFloat(urlFeedAfterPrint) : 14;
+        if (printNudgeXInput) printNudgeXInput.value = Number.isFinite(nudgeX) ? nudgeX : 0;
+        if (printNudgeYInput) printNudgeYInput.value = Number.isFinite(nudgeY) ? nudgeY : 0;
+        if (feedAfterPrintInput) feedAfterPrintInput.value = Number.isFinite(feedMm) ? feedMm : 14;
 
         applyPrinterSettings(pIndex, w, h, urlInfinite, pTop, pBottom, pLeft, pRight);
       } else {
@@ -732,6 +745,12 @@ document.addEventListener("DOMContentLoaded", () => {
       newUrl.searchParams.set('paddingBottom', paddingBottomMm);
       newUrl.searchParams.set('paddingLeft', paddingLeftMm);
       newUrl.searchParams.set('paddingRight', paddingRightMm);
+      const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
+      const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
+      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
+      newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
+      newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
+      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
       window.history.replaceState({}, '', newUrl);
     };
 
@@ -751,6 +770,30 @@ document.addEventListener("DOMContentLoaded", () => {
     if (paddingRightInput) {
       paddingRightInput.addEventListener('change', updatePaddingFromInputs);
       paddingRightInput.addEventListener('blur', updatePaddingFromInputs);
+    }
+
+    const updatePrintTuningFromInputs = () => {
+      const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
+      const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
+      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
+      newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
+      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
+      window.history.replaceState({}, '', newUrl);
+    };
+
+    if (printNudgeXInput) {
+      printNudgeXInput.addEventListener('change', updatePrintTuningFromInputs);
+      printNudgeXInput.addEventListener('blur', updatePrintTuningFromInputs);
+    }
+    if (printNudgeYInput) {
+      printNudgeYInput.addEventListener('change', updatePrintTuningFromInputs);
+      printNudgeYInput.addEventListener('blur', updatePrintTuningFromInputs);
+    }
+    if (feedAfterPrintInput) {
+      feedAfterPrintInput.addEventListener('change', updatePrintTuningFromInputs);
+      feedAfterPrintInput.addEventListener('blur', updatePrintTuningFromInputs);
     }
 
     // 3. Handle Start Button Click
@@ -777,6 +820,12 @@ document.addEventListener("DOMContentLoaded", () => {
       newUrl.searchParams.set('paddingBottom', paddingBottomMm);
       newUrl.searchParams.set('paddingLeft', paddingLeftMm);
       newUrl.searchParams.set('paddingRight', paddingRightMm);
+      const nudgeXMm = printNudgeXInput ? parseFloat(printNudgeXInput.value) : 0;
+      const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
+      const feedMm = feedAfterPrintInput ? parseFloat(feedAfterPrintInput.value) : 14;
+      newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
+      newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
+      newUrl.searchParams.set('feedAfterPrint', Number.isFinite(feedMm) ? feedMm : 14);
       window.history.replaceState({}, '', newUrl);
     });
   }

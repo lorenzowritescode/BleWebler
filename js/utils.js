@@ -65,10 +65,15 @@ async function printLabel() {
         // We pass 1 as copyCount to constructBitmap so it generates just one label
         // We preserve isInfinitePaper and spacingMm logic, though spacingMm mostly applies to the "gap" in the canvas method. 
         // For separate print jobs, the printer's feed commands (in the class) handle the separation.
-        const bitmap = constructBitmap(printer.px, 1, isInfinitePaper);
-
+        let bitmap = constructBitmap(printer.px, 1, isInfinitePaper);
         if (bitmap) {
-          await printerInstance.print(device, bitmap, isSegmented);
+          const tune = readPrintTuningFromDom();
+          bitmap = applyPrintNudgeMm(bitmap, printer.dpm || 8, tune.nudgeXMm, tune.nudgeYMm);
+          bitmap = padBitmapHeightToMultipleOf8(bitmap);
+          await printerInstance.print(device, bitmap, isSegmented, {
+            feedAfterPrintMm: tune.feedAfterPrintMm,
+            dpm: printer.dpm || 8
+          });
         }
 
         // Add a small delay between copies to ensure printer processes the buffer
@@ -218,6 +223,59 @@ function constructBitmap(canvasHeight, copyCount, isInfinitePaper, ignoreSelecti
 }
 
 /**
+ * Read print tuning from the Printer output section (mm → dots via caller dpm).
+ */
+function readPrintTuningFromDom() {
+  const el = (id) => document.getElementById(id);
+  const num = (id, fallback) => {
+    const v = el(id);
+    if (!v) return fallback;
+    const n = parseFloat(v.value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    nudgeXMm: num("printNudgeXMm", 0),
+    nudgeYMm: num("printNudgeYMm", 0),
+    feedAfterPrintMm: num("feedAfterPrintMm", 14)
+  };
+}
+
+/**
+ * Nudge the final raster relative to the printer’s origin (hardware often has dead margin).
+ * Positive X → pad left (image shifts right on the sticker). Negative X → trim from the left.
+ * Positive Y → pad rows at top (image shifts down). Negative Y → trim from the top.
+ */
+function applyPrintNudgeMm(bitmap, dpm, nudgeXMm, nudgeYMm) {
+  if (!bitmap || !bitmap.length) return bitmap;
+  const d = Math.max(1, dpm || 8);
+  let dx = Math.round((Number.isFinite(nudgeXMm) ? nudgeXMm : 0) * d);
+  let dy = Math.round((Number.isFinite(nudgeYMm) ? nudgeYMm : 0) * d);
+  let b = bitmap.map((r) => r);
+  const w0 = b[0].length;
+
+  if (dx > 0) {
+    const pad = "0".repeat(dx);
+    b = b.map((row) => pad + row);
+  } else if (dx < 0) {
+    const t = Math.min(w0, -dx);
+    if (t > 0) b = b.map((row) => row.slice(t));
+  }
+
+  if (!b.length || !b[0].length) return bitmap;
+
+  if (dy > 0) {
+    const line = "0".repeat(b[0].length);
+    const padRows = Array(dy).fill(line);
+    b = padRows.concat(b);
+  } else if (dy < 0) {
+    const t = Math.min(b.length, -dy);
+    if (t > 0) b = b.slice(t);
+  }
+
+  return b.length && b[0].length ? b : bitmap;
+}
+
+/**
  * Ruler grid matching the current canvas pixel size (WYSIWYG check vs physical label).
  * Ticks every 1 mm (dpm dots); longer ticks every 12 mm. Full border + center cross.
  * Bitmap height is padded to a multiple of 8 for the Marklife packet encoder.
@@ -301,12 +359,17 @@ async function printCalibrationLabel() {
     const isSegmented = infinitePaperCheckbox ? !infinitePaperCheckbox.checked : true;
 
     let bitmap = buildCalibrationBitmap(w, h, dpm);
+    const tune = readPrintTuningFromDom();
+    bitmap = applyPrintNudgeMm(bitmap, dpm, tune.nudgeXMm, tune.nudgeYMm);
     bitmap = padBitmapHeightToMultipleOf8(bitmap);
     log(
-      `Calibration print: ${w}×${bitmap.length} dots (${dpm} dots/mm → small tick = 1 mm, long tick = 12 mm). Compare to on-screen label size.`
+      `Calibration print: ${bitmap[0].length}×${bitmap.length} dots after nudge; ${dpm} dots/mm ticks. Feed ${tune.feedAfterPrintMm} mm.`
     );
 
-    await printerInstance.print(device, bitmap, isSegmented);
+    await printerInstance.print(device, bitmap, isSegmented, {
+      feedAfterPrintMm: tune.feedAfterPrintMm,
+      dpm
+    });
     log("Calibration print finished.");
   } catch (err) {
     console.error("Calibration print failed:", err);
