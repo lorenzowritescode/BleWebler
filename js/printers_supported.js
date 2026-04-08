@@ -2,12 +2,13 @@
 window.supportedPrinters = [
     {
         name: "Marklife_P12",
-        namePrefix: "P12_", //prefix to search for in the name while connecting via BLE
-        pattern: /^P12_.+?_BLE$/, //Pattern used to distinguish this printer from others after connecting via BLE
-        printerClass: MarklifeP12Printer, // Class to instantiate
-        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"], // UUIDs needed
-        px: 96, //printed width in px
-        dpm: 8, //printer dots per mm (203 dpi)
+        namePrefix: "P12_",
+        pattern: /^P12_.+?_BLE$/,
+        printerClass: MarklifeP12Printer,
+        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"],
+        px: 96,
+        dpm: 8,
+        presets: [],
         printerInfo:
             `Name             : Marklife P12
 Pixel Density    : 203 dpi
@@ -24,13 +25,20 @@ User Manual      : <a href="https://fcc.report/FCC-ID/2A2AI-P12/5793950.pdf" tar
 
     {
         name: "Marklife_P15",
-        namePrefix: "P15_", //prefix to search for in the name while connecting via BLE
-        pattern: /^P15_.+?_BLE$/, //Pattern used to distinguish this printer from others after connecting via BLE
-        printerClass: MarklifeP12Printer, // Class to instantiate
-        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"], // UUIDs needed
-        // Same raster geometry as P12 — BLE payload is tuned for 8 dots/mm × 96-line buffers; other values mis-print (split/overlap).
+        namePrefix: "P15_",
+        pattern: /^P15_.+?_BLE$/,
+        printerClass: MarklifeP12Printer,
+        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"],
         px: 96,
         dpm: 8,
+        presets: [
+            {
+                name: "Segmented 39\u00d712 mm",
+                width: 39, height: 12, infinite: false,
+                paddingTop: 0, paddingBottom: 0, paddingLeft: 0.5, paddingRight: 0,
+                nudgeX: 0, nudgeY: 0
+            }
+        ],
         printerInfo:
             `Name             : Marklife P15
 Pixel Density    : 203 dpi
@@ -45,12 +53,13 @@ User Manual      : <a href="https://fcc.report/FCC-ID/2A2AI-P15/7600816.pdf" tar
 
     {
         name: "L13 (SilverCrest and others)",
-        namePrefix: "L13_", //prefix to search for in the name while connecting via BLE
-        pattern: /^L13_.+?_BLE$/, //Pattern used to distinguish this printer from others after connecting via BLE
-        printerClass: MarklifeP12Printer, // Class to instantiate
-        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"], // UUIDs needed
-        px: 96, //printed width in px
-        dpm: 8, //printer dots per mm (203 dpi)
+        namePrefix: "L13_",
+        pattern: /^L13_.+?_BLE$/,
+        printerClass: MarklifeP12Printer,
+        optionalServices: ["0000ff00-0000-1000-8000-00805f9b34fb", "49535343-fe7d-4ae5-8fa9-9fafd205e455"],
+        px: 96,
+        dpm: 8,
+        presets: [],
         printerInfo:
             `Name             : L13 (SilverCrest and others)
 Pixel Density    : 203 dpi

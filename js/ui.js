@@ -552,13 +552,64 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (startupModal && printerSelect && startBtn) {
+    const presetSelect = document.getElementById('presetSelect');
+    const presetContainer = document.getElementById('presetContainer');
+
     // 1. Populate Printer List
     if (typeof supportedPrinters !== 'undefined') {
       supportedPrinters.forEach((printer, index) => {
         const option = document.createElement("option");
-        option.value = index; // Use index to easily retrieve printer object later
+        option.value = index;
         option.textContent = printer.name;
         printerSelect.appendChild(option);
+      });
+    }
+
+    const populatePresets = (printerIndex) => {
+      if (!presetSelect || !presetContainer) return;
+      while (presetSelect.options.length > 1) presetSelect.remove(1);
+      const printer = typeof supportedPrinters !== 'undefined' && supportedPrinters[printerIndex];
+      const presets = printer && Array.isArray(printer.presets) ? printer.presets : [];
+      if (presets.length === 0) {
+        presetContainer.style.display = 'none';
+        return;
+      }
+      presets.forEach((p, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = p.name;
+        presetSelect.appendChild(opt);
+      });
+      presetContainer.style.display = 'block';
+    };
+
+    const applyPreset = (printerIndex, presetIndex) => {
+      const printer = typeof supportedPrinters !== 'undefined' && supportedPrinters[printerIndex];
+      if (!printer || !Array.isArray(printer.presets) || !printer.presets[presetIndex]) return;
+      const p = printer.presets[presetIndex];
+      if (paperWidthInput) paperWidthInput.value = p.width;
+      if (paperHeightInput) paperHeightInput.value = p.height;
+      if (infinitePaperCheckbox) {
+        infinitePaperCheckbox.checked = !!p.infinite;
+        infinitePaperCheckbox.dispatchEvent(new Event('change'));
+      }
+      if (paddingTopInput) paddingTopInput.value = p.paddingTop ?? 0;
+      if (paddingBottomInput) paddingBottomInput.value = p.paddingBottom ?? 0;
+      if (paddingLeftInput) paddingLeftInput.value = p.paddingLeft ?? 0;
+      if (paddingRightInput) paddingRightInput.value = p.paddingRight ?? 0;
+      if (printNudgeXInput) printNudgeXInput.value = p.nudgeX ?? 0;
+      if (printNudgeYInput) printNudgeYInput.value = p.nudgeY ?? 0;
+    };
+
+    printerSelect.addEventListener('change', () => {
+      populatePresets(parseInt(printerSelect.value));
+    });
+
+    if (presetSelect) {
+      presetSelect.addEventListener('change', () => {
+        const v = presetSelect.value;
+        if (v === '') return;
+        applyPreset(parseInt(printerSelect.value), parseInt(v));
       });
     }
 
@@ -629,6 +680,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const urlPaddingRight = urlParams.get('paddingRight');
     const urlPrintNudgeX = urlParams.get('printNudgeX');
     const urlPrintNudgeY = urlParams.get('printNudgeY');
+    const urlPreset = urlParams.get('preset');
 
     // Infinite Paper Checkbox Logic
     if (infinitePaperCheckbox && paperWidthInput && paperWidthContainer) {
@@ -653,23 +705,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (urlPrinter !== null && urlWidth !== null && urlHeight !== null) {
-      // Apply settings from URL
       const pIndex = parseInt(urlPrinter);
       const w = parseFloat(urlWidth);
       const h = parseFloat(urlHeight);
 
       if (!isNaN(pIndex) && !isNaN(w) && !isNaN(h)) {
-        // Update inputs to match URL (so if they open settings later, it's correct)
         printerSelect.value = pIndex;
+        populatePresets(pIndex);
+
+        // If a preset was saved, apply it (fills form inputs) then override with URL values
+        if (urlPreset !== null && urlPreset !== '') {
+          const pi = parseInt(urlPreset);
+          if (!isNaN(pi)) {
+            applyPreset(pIndex, pi);
+            if (presetSelect) presetSelect.value = pi;
+          }
+        }
+
         paperWidthInput.value = w;
         paperHeightInput.value = h;
         if (infinitePaperCheckbox) {
           infinitePaperCheckbox.checked = urlInfinite;
-          // Trigger change event to update UI state (hide/show width input)
           infinitePaperCheckbox.dispatchEvent(new Event('change'));
         }
 
-        // Update padding inputs from URL
         const pTop = urlPaddingTop !== null ? parseFloat(urlPaddingTop) : 0;
         const pBottom = urlPaddingBottom !== null ? parseFloat(urlPaddingBottom) : 0;
         const pLeft = urlPaddingLeft !== null ? parseFloat(urlPaddingLeft) : 0;
@@ -687,11 +746,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         applyPrinterSettings(pIndex, w, h, urlInfinite, pTop, pBottom, pLeft, pRight);
       } else {
-        // Invalid params, show modal
+        populatePresets(0);
         startupModal.classList.add("show");
       }
     } else {
-      // No URL params, show modal
+      populatePresets(0);
       startupModal.classList.add("show");
     }
 
@@ -804,7 +863,6 @@ document.addEventListener("DOMContentLoaded", () => {
       applyPrinterSettings(selectedPrinterIndex, widthMm, heightMm, isInfinite,
         paddingTopMm, paddingBottomMm, paddingLeftMm, paddingRightMm);
 
-      // Update URL
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('printer', selectedPrinterIndex);
       newUrl.searchParams.set('width', widthMm);
@@ -818,6 +876,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const nudgeYMm = printNudgeYInput ? parseFloat(printNudgeYInput.value) : 0;
       newUrl.searchParams.set('printNudgeX', Number.isFinite(nudgeXMm) ? nudgeXMm : 0);
       newUrl.searchParams.set('printNudgeY', Number.isFinite(nudgeYMm) ? nudgeYMm : 0);
+      if (presetSelect && presetSelect.value !== '') {
+        newUrl.searchParams.set('preset', presetSelect.value);
+      } else {
+        newUrl.searchParams.delete('preset');
+      }
       window.history.replaceState({}, '', newUrl);
     });
   }
