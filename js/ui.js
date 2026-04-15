@@ -208,9 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (fontSizeAutoBtn) {
     fontSizeAutoBtn.addEventListener("click", () => {
-      if (!window.fabricEditor || typeof window.fabricEditor.setAutoFontSize !== "function") return;
-      const willEnable = !fontSizeAutoBtn.classList.contains("active");
-      window.fabricEditor.setAutoFontSize(willEnable);
+      if (!window.fabricEditor || typeof window.fabricEditor.toggleAutoFontSize !== "function") return;
+      window.fabricEditor.toggleAutoFontSize();
     });
   }
 

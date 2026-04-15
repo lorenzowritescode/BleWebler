@@ -848,7 +848,7 @@ function updateTextControls() {
       fontFamilyInput.value = activeObject.fontFamily;
       const autoBtn = document.getElementById('fontSizeAutoBtn');
       if (autoBtn) {
-        autoBtn.classList.toggle('active', activeObject.autoFontSize !== false);
+        autoBtn.classList.toggle('active', activeObject.autoFontSize === true);
       }
       if (typeof window.syncBitmapFontQuickPick === "function") {
         window.syncBitmapFontQuickPick();
@@ -1153,10 +1153,22 @@ window.fabricEditor = {
     activeObject.set({ autoFontSize: !!enabled });
     if (enabled) {
       fitTextObjectToPaddingBounds(activeObject);
-    } else {
-      canvas.renderAll();
     }
+    canvas.renderAll();
     updateTextControls();
+  },
+
+  isAutoFontSizeEnabled: function () {
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject || activeObject.type !== 'i-text') return false;
+    return activeObject.autoFontSize === true;
+  },
+
+  toggleAutoFontSize: function () {
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject || activeObject.type !== 'i-text') return;
+    const currentlyEnabled = activeObject.autoFontSize === true;
+    this.setAutoFontSize(!currentlyEnabled);
   },
 
   getActiveObject: function () {
