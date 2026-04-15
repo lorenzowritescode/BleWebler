@@ -971,6 +971,24 @@ textarea.input-modern {
   min-width: 0;
 }
 
+.font-size-control-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.font-size-control-row .btn {
+  height: var(--control-height);
+  padding: 0 var(--spacing-sm);
+  min-width: 2.8rem;
+}
+
+#fontSizeAutoBtn.active {
+  background: var(--primary);
+  color: var(--text-light);
+  border-color: var(--primary);
+}
+
 .font-family-text-input {
   flex: 1 1 6rem;
   min-width: 0;

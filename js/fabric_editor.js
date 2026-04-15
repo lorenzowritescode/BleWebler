@@ -20,6 +20,8 @@ let paddingGuides = {
 };
 
 let qrUpdateTimer = null; // Debounce timer for QR updates
+const MIN_AUTO_FONT_SIZE = 6;
+const MAX_AUTO_FONT_SIZE = 300;
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas = new fabric.Canvas('fabricCanvas', {
@@ -104,6 +106,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   canvas.on('selection:created', updateTextControls);
   canvas.on('object:modified', handleObjectModified); // Update controls when object is modified (e.g., scaled)
+  canvas.on('text:changed', (e) => {
+    const textObject = e.target;
+    if (textObject && textObject.type === 'i-text') {
+      if (textObject.autoFontSize !== false) {
+        fitTextObjectToPaddingBounds(textObject);
+      } else {
+        applyLockedAlignment(textObject);
+      }
+      canvas.renderAll();
+      updateTextControls();
+    }
+  });
 
   // Double-click to focus input
   canvas.on('mouse:dblclick', (e) => {
@@ -432,12 +446,14 @@ function addTextToCanvas() {
     fontStyle: 'normal',  // Default to normal, will be set by toggleStyle if active
     underline: false,     // Default to false, will be set by toggleStyle if active
     textBaseline: 'alphabetic', // Explicitly set a valid textBaseline
+    autoFontSize: true
   });
 
   // Center vertically within padding bounds
   newText.set({
     top: bounds.top + (contentHeight - newText.getScaledHeight()) / 2
   });
+  fitTextObjectToPaddingBounds(newText);
   canvas.add(newText);
   canvas.setActiveObject(newText);
   newText.enterEditing();
@@ -785,7 +801,9 @@ function applyTextProperties() {
       fontFamily: fontFamilyInput.value || activeObject.fontFamily, // Use fontFamilySelect
       scaleX: 1, // Reset scale when font size is manually set
       scaleY: 1, // Reset scale when font size is manually set
+      autoFontSize: false
     });
+    applyLockedAlignment(activeObject);
     canvas.renderAll();
     // After applying new font size, update controls to reflect the change
     updateTextControls();
@@ -828,6 +846,10 @@ function updateTextControls() {
       const effectiveFontSize = Math.round(activeObject.fontSize * activeObject.scaleY);
       fontSizeInput.value = effectiveFontSize;
       fontFamilyInput.value = activeObject.fontFamily;
+      const autoBtn = document.getElementById('fontSizeAutoBtn');
+      if (autoBtn) {
+        autoBtn.classList.toggle('active', activeObject.autoFontSize !== false);
+      }
       if (typeof window.syncBitmapFontQuickPick === "function") {
         window.syncBitmapFontQuickPick();
       }
@@ -840,6 +862,7 @@ function updateTextControls() {
         else if (property === 'underline') isActive = activeObject.underline;
         button.classList.toggle('active', isActive);
       });
+      updateAlignmentControlStates(activeObject);
     } else if (activeObject.type === 'image') {
       // Check if it's a QR code
       if (activeObject.isQRCode) {
@@ -951,10 +974,12 @@ function updateTextControls() {
           }
         }
       }
+      updateAlignmentControlStates(null);
     } else {
       // Not text or image, hide all controls
       if (qrControlsGroup) qrControlsGroup.style.display = 'none';
       if (imageStylingGroup) imageStylingGroup.style.display = 'none';
+      updateAlignmentControlStates(null);
     }
   } else {
     // No object selected, hide the object-specific box and all controls
@@ -964,6 +989,7 @@ function updateTextControls() {
 
     // Ensure controls are reset
     clearTextControls();
+    updateAlignmentControlStates(null);
   }
 }
 
@@ -971,6 +997,8 @@ function clearTextControls() {
   // Reset to default or clear when no text object is selected
   fontSizeInput.value = '48';
   fontFamilyInput.value = 'DePixel Breit';
+  const autoBtn = document.getElementById('fontSizeAutoBtn');
+  if (autoBtn) autoBtn.classList.remove('active');
   if (typeof window.syncBitmapFontQuickPick === "function") {
     window.syncBitmapFontQuickPick();
   }
@@ -1027,6 +1055,11 @@ window.fabricEditor = {
         return;
     }
     activeObject.set({ left: newLeft });
+    if (activeObject.type === 'i-text') {
+      activeObject.set({ lockedHorizontalAlign: alignment });
+      applyLockedAlignment(activeObject);
+      updateTextControls();
+    }
     canvas.renderAll();
   },
 
@@ -1061,6 +1094,11 @@ window.fabricEditor = {
         return;
     }
     activeObject.set({ top: newTop });
+    if (activeObject.type === 'i-text') {
+      activeObject.set({ lockedVerticalAlign: alignment });
+      applyLockedAlignment(activeObject);
+      updateTextControls();
+    }
     canvas.renderAll();
   },
 
@@ -1068,6 +1106,11 @@ window.fabricEditor = {
     const activeObject = canvas.getActiveObject();
     if (activeObject && activeObject.type === 'i-text') {
       activeObject.set({ fontFamily: fontFamily });
+      if (activeObject.autoFontSize !== false) {
+        fitTextObjectToPaddingBounds(activeObject);
+      } else {
+        applyLockedAlignment(activeObject);
+      }
       canvas.renderAll();
       updateTextControls(); // Update UI to reflect change
     }
@@ -1079,11 +1122,41 @@ window.fabricEditor = {
       activeObject.set({
         fontSize: fontSize,
         scaleX: 1,
-        scaleY: 1
+        scaleY: 1,
+        autoFontSize: false
       });
+      applyLockedAlignment(activeObject);
       canvas.renderAll();
       updateTextControls(); // Update UI to reflect change
     }
+  },
+
+  bumpFontSize: function (delta) {
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject || activeObject.type !== 'i-text') return;
+    const currentSize = parseFloat(activeObject.fontSize) || 48;
+    const nextSize = Math.max(1, Math.round(currentSize + delta));
+    activeObject.set({
+      fontSize: nextSize,
+      scaleX: 1,
+      scaleY: 1,
+      autoFontSize: false
+    });
+    applyLockedAlignment(activeObject);
+    canvas.renderAll();
+    updateTextControls();
+  },
+
+  setAutoFontSize: function (enabled) {
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject || activeObject.type !== 'i-text') return;
+    activeObject.set({ autoFontSize: !!enabled });
+    if (enabled) {
+      fitTextObjectToPaddingBounds(activeObject);
+    } else {
+      canvas.renderAll();
+    }
+    updateTextControls();
   },
 
   getActiveObject: function () {
@@ -1104,6 +1177,11 @@ window.fabricEditor = {
         value = !activeObject.underline;
         activeObject.set({ underline: value });
       }
+      if (activeObject.autoFontSize !== false) {
+        fitTextObjectToPaddingBounds(activeObject);
+      } else {
+        applyLockedAlignment(activeObject);
+      }
       canvas.renderAll();
       updateTextControls(); // Update UI to reflect change
       return value; // Return the new state
@@ -1116,6 +1194,7 @@ window.fabricEditor = {
       canvas.setWidth(width);
       canvas.setHeight(height);
       updatePaddingGuides();
+      refitAutoTextObjects();
       canvas.renderAll();
       canvas.fire('canvas:resized', { width: width, height: height });
     }
@@ -1127,6 +1206,8 @@ window.fabricEditor = {
     paddingState.left = left;
     paddingState.right = right;
     updatePaddingGuides();
+    refitAutoTextObjects();
+    reapplyAlignmentLocksForAllTextObjects();
     canvas.renderAll();
   },
 
@@ -1134,6 +1215,122 @@ window.fabricEditor = {
     return getPaddingBounds();
   }
 };
+
+function refitAutoTextObjects() {
+  if (!canvas) return;
+  canvas.getObjects().forEach((obj) => {
+    if (obj && obj.type === 'i-text' && obj.autoFontSize !== false) {
+      fitTextObjectToPaddingBounds(obj);
+    }
+  });
+}
+
+function reapplyAlignmentLocksForAllTextObjects() {
+  if (!canvas) return;
+  canvas.getObjects().forEach((obj) => {
+    if (obj && obj.type === 'i-text') {
+      applyLockedAlignment(obj);
+    }
+  });
+}
+
+function applyLockedAlignment(textObject) {
+  if (!textObject || textObject.type !== 'i-text') return;
+
+  const bounds = getPaddingBounds();
+  const contentWidth = bounds.right - bounds.left;
+  const contentHeight = bounds.bottom - bounds.top;
+  const objectWidth = textObject.getScaledWidth();
+  const objectHeight = textObject.getScaledHeight();
+  let didAlign = false;
+
+  switch (textObject.lockedHorizontalAlign) {
+    case 'left':
+      textObject.set({ left: bounds.left });
+      didAlign = true;
+      break;
+    case 'center':
+      textObject.set({ left: bounds.left + (contentWidth - objectWidth) / 2 });
+      didAlign = true;
+      break;
+    case 'right':
+      textObject.set({ left: bounds.right - objectWidth });
+      didAlign = true;
+      break;
+    default:
+      break;
+  }
+
+  switch (textObject.lockedVerticalAlign) {
+    case 'top':
+      textObject.set({ top: bounds.top });
+      didAlign = true;
+      break;
+    case 'middle':
+      textObject.set({ top: bounds.top + (contentHeight - objectHeight) / 2 });
+      didAlign = true;
+      break;
+    case 'bottom':
+      textObject.set({ top: bounds.bottom - objectHeight });
+      didAlign = true;
+      break;
+    default:
+      break;
+  }
+
+  if (didAlign) {
+    textObject.setCoords();
+  } else {
+    constrainObjectToCanvas(textObject);
+  }
+}
+
+function updateAlignmentControlStates(activeObject) {
+  const buttons = document.querySelectorAll('.alignment-lock-btn');
+  buttons.forEach((button) => {
+    const axis = button.dataset.alignAxis;
+    const value = button.dataset.alignValue;
+    let isActive = false;
+    if (activeObject && activeObject.type === 'i-text') {
+      if (axis === 'horizontal') {
+        isActive = activeObject.lockedHorizontalAlign === value;
+      } else if (axis === 'vertical') {
+        isActive = activeObject.lockedVerticalAlign === value;
+      }
+    }
+    button.classList.toggle('active', isActive);
+  });
+}
+
+function fitTextObjectToPaddingBounds(textObject) {
+  if (!textObject || textObject.type !== 'i-text') return;
+
+  const bounds = getPaddingBounds();
+  const availableWidth = Math.max(1, bounds.right - bounds.left);
+  const availableHeight = Math.max(1, bounds.bottom - bounds.top);
+
+  textObject.set({ scaleX: 1, scaleY: 1 });
+
+  let low = MIN_AUTO_FONT_SIZE;
+  let high = MAX_AUTO_FONT_SIZE;
+  let best = Math.max(MIN_AUTO_FONT_SIZE, Math.min(high, parseFloat(textObject.fontSize) || 48));
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    textObject.set({ fontSize: mid });
+    textObject.setCoords();
+    const fits = textObject.getScaledWidth() <= availableWidth && textObject.getScaledHeight() <= availableHeight;
+    if (fits) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  textObject.set({ fontSize: best });
+  applyLockedAlignment(textObject);
+}
 
 // Helper function to get padding bounds in pixels
 function getPaddingBounds() {

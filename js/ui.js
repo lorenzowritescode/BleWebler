@@ -35,7 +35,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const fontList = document.getElementById("fontList");
   const loadSystemFontsBtn = document.getElementById("loadSystemFontsBtn");
   const fontSizeInput = document.getElementById("fontSize");
+  const fontSizeDownBtn = document.getElementById("fontSizeDownBtn");
+  const fontSizeUpBtn = document.getElementById("fontSizeUpBtn");
+  const fontSizeAutoBtn = document.getElementById("fontSizeAutoBtn");
   const noBluetoothModal = document.getElementById("noBluetoothModal");
+  const textOptions = document.getElementById("textOptions");
+  let shouldRestoreITextFocus = false;
 
   // Check for Web Bluetooth support
   if (!navigator.bluetooth) {
@@ -66,6 +71,51 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
+
+  function getActiveITextObject() {
+    if (!window.fabricEditor || typeof window.fabricEditor.getActiveObject !== "function") return null;
+    const activeObject = window.fabricEditor.getActiveObject();
+    if (!activeObject || activeObject.type !== "i-text") return null;
+    return activeObject;
+  }
+
+  function restoreActiveITextFocus() {
+    if (!shouldRestoreITextFocus) return;
+    shouldRestoreITextFocus = false;
+    const activeIText = getActiveITextObject();
+    if (!activeIText) return;
+
+    if (!activeIText.isEditing && typeof activeIText.enterEditing === "function") {
+      activeIText.enterEditing();
+      if (typeof activeIText.text === "string") {
+        const end = activeIText.text.length;
+        activeIText.selectionStart = end;
+        activeIText.selectionEnd = end;
+      }
+    }
+
+    if (activeIText.hiddenTextarea) {
+      activeIText.hiddenTextarea.focus();
+    }
+  }
+
+  if (textOptions) {
+    textOptions.addEventListener("mousedown", (event) => {
+      const actionableControl = event.target.closest(".btn, .font-gallery-chip");
+      if (!actionableControl) return;
+
+      const activeIText = getActiveITextObject();
+      if (activeIText && activeIText.isEditing) {
+        shouldRestoreITextFocus = true;
+        // Prevent the clicked button from taking keyboard focus.
+        event.preventDefault();
+      }
+    });
+
+    textOptions.addEventListener("click", () => {
+      requestAnimationFrame(restoreActiveITextFocus);
+    });
+  }
 
   function populateFontDropdown(fonts) {
     fontList.innerHTML = ""; // Clear existing options
@@ -137,6 +187,30 @@ document.addEventListener("DOMContentLoaded", () => {
   if (fontSizeInput) {
     fontSizeInput.addEventListener("change", (event) => {
       updateFontSize(parseInt(event.target.value, 10));
+    });
+  }
+
+  if (fontSizeDownBtn) {
+    fontSizeDownBtn.addEventListener("click", () => {
+      if (window.fabricEditor && typeof window.fabricEditor.bumpFontSize === "function") {
+        window.fabricEditor.bumpFontSize(-2);
+      }
+    });
+  }
+
+  if (fontSizeUpBtn) {
+    fontSizeUpBtn.addEventListener("click", () => {
+      if (window.fabricEditor && typeof window.fabricEditor.bumpFontSize === "function") {
+        window.fabricEditor.bumpFontSize(2);
+      }
+    });
+  }
+
+  if (fontSizeAutoBtn) {
+    fontSizeAutoBtn.addEventListener("click", () => {
+      if (!window.fabricEditor || typeof window.fabricEditor.setAutoFontSize !== "function") return;
+      const willEnable = !fontSizeAutoBtn.classList.contains("active");
+      window.fabricEditor.setAutoFontSize(willEnable);
     });
   }
 
