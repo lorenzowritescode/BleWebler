@@ -119,6 +119,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // iOS Safari zooms when a focused field is smaller than 16px
+  const MIN_TOUCH_INPUT_FONT_PX = 16;
+  const preventMobileInputZoom = (textObject) => {
+    const ta = textObject?.hiddenTextarea;
+    if (!ta) return;
+    const size = parseFloat(textObject.fontSize) || MIN_TOUCH_INPUT_FONT_PX;
+    ta.style.fontSize = Math.max(size, MIN_TOUCH_INPUT_FONT_PX) + 'px';
+  };
+  canvas.on('text:editing:entered', (e) => {
+    if (e?.target?.type === 'i-text') preventMobileInputZoom(e.target);
+  });
+
   // Double-click to focus input
   canvas.on('mouse:dblclick', (e) => {
     if (e.target && e.target.isQRCode) {
