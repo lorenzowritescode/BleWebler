@@ -249,20 +249,27 @@ document.addEventListener("DOMContentLoaded", () => {
       // Hide all option divs
       const textDiv = document.getElementById("textOptions");
       const infoDiv = document.getElementById("infoOptions");
+      const historyDiv = document.getElementById("historyOptions");
 
-      if (!textDiv || !infoDiv) {
+      if (!textDiv || !infoDiv || !historyDiv) {
         console.error("Option divs not found!");
         return;
       }
 
       textDiv.style.display = "none";
       infoDiv.style.display = "none";
+      historyDiv.style.display = "none";
 
       // Show selected option
       if (type === "text") textDiv.style.display = "block";
       else if (type === "info") {
         infoDiv.style.display = "block";
         handleInfoTab();
+      } else if (type === "history") {
+        historyDiv.style.display = "block";
+        if (typeof window.renderLabelHistory === "function") {
+          window.renderLabelHistory();
+        }
       }
     });
   });
@@ -492,6 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
       heightInput.value = heightMm.toFixed(1);
     }
   };
+  window.updateDimensionInputs = updateDimensionInputs;
 
   // Function to update canvas from dimension inputs
   const updateCanvasFromInputs = () => {

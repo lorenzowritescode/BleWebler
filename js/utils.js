@@ -43,6 +43,10 @@ async function connectPrinter() {
 }
 
 async function printLabel() {
+  if (typeof saveLabelToHistory === 'function') {
+    saveLabelToHistory();
+  }
+
   try {
     await connectPrinter();
 

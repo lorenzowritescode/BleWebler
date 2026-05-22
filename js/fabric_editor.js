@@ -1225,6 +1225,48 @@ window.fabricEditor = {
 
   getPaddingBounds: function () {
     return getPaddingBounds();
+  },
+
+  getPadding: function () {
+    return { ...paddingState };
+  },
+
+  exportLabelSnapshot: function () {
+    if (!canvas) return null;
+    const customProps = [
+      'isQRCode', 'qrContent', 'qrModuleCount',
+      'autoFontSize', 'lockedHorizontalAlign', 'lockedVerticalAlign',
+      'originalWidth', 'originalHeight'
+    ];
+    const json = canvas.toJSON(customProps);
+    if (json.objects) {
+      json.objects = json.objects.filter((o) => !o.paddingGuide);
+    }
+    return {
+      width: canvas.getWidth(),
+      height: canvas.getHeight(),
+      padding: { ...paddingState },
+      canvas: json
+    };
+  },
+
+  importLabelSnapshot: function (snapshot, callback) {
+    if (!canvas || !snapshot || !snapshot.canvas) return;
+    canvas.loadFromJSON(snapshot.canvas, () => {
+      canvas.setWidth(snapshot.width);
+      canvas.setHeight(snapshot.height);
+      paddingState.top = snapshot.padding?.top ?? 0;
+      paddingState.bottom = snapshot.padding?.bottom ?? 0;
+      paddingState.left = snapshot.padding?.left ?? 0;
+      paddingState.right = snapshot.padding?.right ?? 0;
+      updatePaddingGuides();
+      refitAutoTextObjects();
+      reapplyAlignmentLocksForAllTextObjects();
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      canvas.fire('canvas:resized', { width: snapshot.width, height: snapshot.height });
+      if (typeof callback === 'function') callback();
+    });
   }
 };
 

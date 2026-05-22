@@ -93,6 +93,12 @@
               d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
           </svg> Info
         </button>
+        <button class="label-type-btn" data-type="history">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path
+              d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.25 2.52.77-1.28-3.52-2.08V8H12z" />
+          </svg> History
+        </button>
       </div>
 
       <!-- Text Mode Options -->
@@ -395,6 +401,13 @@
         <button id="refreshInfoBtn" class="btn btn-secondary mt-2">Refresh Info</button>
       </div>
 
+      <div id="historyOptions" class="card" style="display:none;">
+        <h3 class="canvas-content">Print History</h3>
+        <p class="history-hint">Labels are saved in this browser when you print. Tap a label to open it in the editor.</p>
+        <div id="historyList" class="history-list"></div>
+        <p id="historyEmpty" class="history-empty">No labels in history yet. Print a label to save it here.</p>
+      </div>
+
       <div class="control-group" style="margin-bottom: var(--spacing-md);">
         <label for="copyCount"
           style="margin-right: var(--spacing-sm); display: flex; align-items: center;">Copies:</label>
@@ -510,6 +523,7 @@
   <script src="js/printers_supported.js" defer></script>
   <script src="js/bitmap_fonts.js" defer></script>
   <script src="js/fabric_editor.js" defer></script>
+  <script src="js/label_history.js" defer></script>
   <script src="js/ui.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/dithering.js" defer></script>
